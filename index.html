@@ -393,6 +393,7 @@
             <button class="sidebar-btn" onclick="sendCommand('/skarbiec')">💰 Pokaż Skarbiec</button>
             <button class="sidebar-btn" onclick="sendCommand('/panszczyzna')">🌾 Pokaż Pańszczyznę</button>
             <button class="sidebar-btn" onclick="sendCommand('/dlugi')">📉 Pokaż Długi</button>
+            <button class="sidebar-btn" onclick="sendCommand('/grzywny')">🚨 Pokaż Grzywny</button>
             <button class="sidebar-btn" onclick="sendCommand('/poradnik')">📖 Instrukcja / Pomoc</button>
         </div>
 
@@ -417,7 +418,7 @@
             <div class="suggestions-popup" id="suggestionsPopup"></div>
 
             <div class="chat-input-area">
-                <input type="text" id="userInput" placeholder="Wpisz komendę (np. /podatki, /dlugi)..." autocomplete="off">
+                <input type="text" id="userInput" placeholder="Wpisz komendę (np. /podatki, /grzywny)..." autocomplete="off">
                 <button onclick="handleSend()">Wyślij</button>
             </div>
         </div>
@@ -470,10 +471,12 @@
             { cmd: '/skarbiec', desc: 'Wyświetla szczegółowy bilans skarbca' },
             { cmd: '/panszczyzna', desc: 'Wyświetla rejestr odrobionej pańszczyzny' },
             { cmd: '/dlugi', desc: 'Wyświetla rejestr długów mieszkańców' },
+            { cmd: '/grzywny', desc: 'Kartoteka grzywien (/grzywny Imię Nazwisko)' },
             { cmd: '/poradnik', desc: 'Wyświetla instrukcję obsługi i pomoc' },
             { cmd: '/dodaj', desc: 'Dodaje mieszkańca (/dodaj Imię Nazwisko kwota)' },
             { cmd: '/wplata', desc: 'Rejestruje wpłatę podatku (/wplata Imię Nazwisko kwota)' },
-            { cmd: '/dodajdlug', desc: 'Nalicza dług / grzywnę (/dodajdlug Imię Nazwisko kwota)' },
+            { cmd: '/grzywna', desc: 'Nalicza grzywnę (/grzywna Imię Nazwisko kwota powód)' },
+            { cmd: '/dodajdlug', desc: 'Nalicza dług (/dodajdlug Imię Nazwisko kwota)' },
             { cmd: '/wplatadlug', desc: 'Wpłaca pieniądze na dług (/wplatadlug Imię Nazwisko kwota)' },
             { cmd: '/splacdlug', desc: 'Całkowicie spłaca dług (/splacdlug Imię Nazwisko)' },
             { cmd: '/zmienpodatek', desc: 'Zmienia podatek konkretnej osobie' },
@@ -565,7 +568,7 @@
                 return;
             }
 
-            if (['/wplata', '/dodajdlug', '/wplatadlug', '/splacdlug', '/usun', '/dodaj', '/zmienpodatek'].includes(currentCmd)) {
+            if (['/wplata', '/grzywna', '/grzywny', '/dodajdlug', '/wplatadlug', '/splacdlug', '/usun', '/dodaj', '/zmienpodatek'].includes(currentCmd)) {
                 if (cachedMieszkancy.length === 0) await fetchSidebarData();
 
                 const typedName = parts.slice(1).join(' ').toLowerCase();
@@ -686,7 +689,7 @@
                 botBox.innerHTML = resObj.content;
 
                 const lowerText = text.toLowerCase();
-                if (lowerText.includes('/podatki') || lowerText.includes('/panszczyzna') || lowerText.includes('/dlugi') || lowerText.includes('/tablica')) {
+                if (lowerText.includes('/podatki') || lowerText.includes('/panszczyzna') || lowerText.includes('/dlugi') || lowerText.includes('/grzywny') || lowerText.includes('/tablica')) {
                     const btnContainer = document.createElement('div');
                     btnContainer.className = 'action-buttons';
 
@@ -697,22 +700,26 @@
 
                     const searchBtn = document.createElement('button');
                     searchBtn.className = 'action-btn search-btn';
-                    searchBtn.innerHTML = '🔍 Szukaj';
+                    searchBtn.innerHTML = '🔍 Szukaj Mieszkańca';
                     searchBtn.onclick = () => {
-                        const query = prompt("Wpisz imię lub nazwisko mieszkańca do wyszukania:");
+                        const query = prompt("Wpisz imię i nazwisko mieszkańca do wyszukania w kartotece:");
                         if (!query) return;
                         
-                        const codeBlocks = botBox.querySelectorAll('pre code');
-                        if (codeBlocks.length > 0) {
-                            const userTableBlock = codeBlocks[0];
-                            const lines = userTableBlock.innerText.split('\n');
-                            const filtered = lines.filter(line => 
-                                line.toLowerCase().includes(query.toLowerCase()) || 
-                                line.includes('----------------') || 
-                                line.includes('Nieopłacone') ||
-                                line.includes('Łączny dług')
-                            );
-                            userTableBlock.innerText = filtered.join('\n');
+                        if (lowerText.includes('/grzywny')) {
+                            sendCommand('/grzywny ' + query);
+                        } else {
+                            const codeBlocks = botBox.querySelectorAll('pre code');
+                            if (codeBlocks.length > 0) {
+                                const userTableBlock = codeBlocks[0];
+                                const lines = userTableBlock.innerText.split('\n');
+                                const filtered = lines.filter(line => 
+                                    line.toLowerCase().includes(query.toLowerCase()) || 
+                                    line.includes('----------------') || 
+                                    line.includes('Nieopłacone') ||
+                                    line.includes('Łączny dług')
+                                );
+                                userTableBlock.innerText = filtered.join('\n');
+                            }
                         }
                     };
 
