@@ -283,10 +283,12 @@
 
     <div class="sidebar">
         <h2>Panel Skarbnika</h2>
-        <p>Zarządzaj podatkami i budżetem wioski KCD2 RP.</p>
+        <p>Zarządzaj finansami i pańszczyzną wioski KCD2 RP.</p>
         
         <div class="sidebar-menu">
-            <button class="sidebar-btn" onclick="sendCommand('/tablica')">📊 Pokaż Tablicę</button>
+            <button class="sidebar-btn" onclick="sendCommand('/podatki')">👤 Pokaż Podatki</button>
+            <button class="sidebar-btn" onclick="sendCommand('/skarbiec')">💰 Pokaż Skarbiec</button>
+            <button class="sidebar-btn" onclick="sendCommand('/panszczyzna')">🌾 Pokaż Pańszczyznę</button>
             <button class="sidebar-btn" onclick="sendCommand('/poradnik')">📖 Instrukcja / Pomoc</button>
         </div>
 
@@ -304,14 +306,14 @@
         </div>
         
         <div class="chat-messages" id="chatMessages">
-            <div class="message bot">Witaj skarbniku! Wpisz **/poradnik** lub **/tablica**, aby zarządzać finansami wioski.</div>
+            <div class="message bot">Witaj skarbniku! Wybierz opcję z lewego menu lub wpisz **/poradnik**.</div>
         </div>
 
         <div class="chat-input-wrapper">
             <div class="suggestions-popup" id="suggestionsPopup"></div>
 
             <div class="chat-input-area">
-                <input type="text" id="userInput" placeholder="Wpisz komendę (np. /tablica, /wplata)..." autocomplete="off">
+                <input type="text" id="userInput" placeholder="Wpisz komendę (np. /podatki, /skarbiec)..." autocomplete="off">
                 <button onclick="handleSend()">Wyślij</button>
             </div>
         </div>
@@ -323,14 +325,18 @@
         const suggestionsPopup = document.getElementById('suggestionsPopup');
 
         const COMMANDS = [
-            { cmd: '/tablica', desc: 'Wyświetla stan skarbca i listę podatników' },
+            { cmd: '/podatki', desc: 'Wyświetla listę mieszkańców i ich podatki' },
+            { cmd: '/skarbiec', desc: 'Wyświetla szczegółowy bilans skarbca' },
+            { cmd: '/panszczyzna', desc: 'Wyświetla rejestr odrobionej pańszczyzny' },
             { cmd: '/poradnik', desc: 'Wyświetla instrukcję obsługi i pomoc' },
             { cmd: '/dodaj', desc: 'Dodaje mieszkańca (/dodaj Imię Nazwisko kwota)' },
             { cmd: '/wplata', desc: 'Rejestruje wpłatę podatku (/wplata Imię Nazwisko kwota)' },
-            { cmd: '/wydatek', desc: 'Rejestruje wydatek skarbca (/wydatek kategoria kwota powód)' },
-            { cmd: '/wplyw', desc: 'Rejestruje wpływ do skarbca (/wplyw kategoria kwota powód)' },
+            { cmd: '/zmienpodatek', desc: 'Zmienia podatek konkretnej osobie' },
+            { cmd: '/zmienpodatekwszystkim', desc: 'Zmienia podatek wszystkim mieszkańcom' },
+            { cmd: '/wydatek', desc: 'Rejestruje wydatek skarbca' },
+            { cmd: '/wplyw', desc: 'Rejestruje wpływ do skarbca' },
             { cmd: '/transakcje', desc: 'Pokazuje historię ostatnich operacji' },
-            { cmd: '/usun', desc: 'Usuwa mieszkańca z rejestru (/usun Imię Nazwisko)' }
+            { cmd: '/usun', desc: 'Usuwa mieszkańca z rejestru' }
         ];
 
         let cachedMieszkancy = [];
@@ -417,7 +423,7 @@
                 return;
             }
 
-            if (['/wplata', '/usun', '/dodaj', '/tablica'].includes(currentCmd)) {
+            if (['/wplata', '/usun', '/dodaj', '/zmienpodatek'].includes(currentCmd)) {
                 if (cachedMieszkancy.length === 0) await fetchSidebarData();
 
                 const typedName = parts.slice(1).join(' ').toLowerCase();
@@ -487,9 +493,10 @@
                 .replace(/```text\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
                 .replace(/```\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
             
-            // Elastyczne dopasowanie spacji dla kolorowania statusów
+            // Kolorowanie statusów
             formatted = formatted.replace(/\[\s*ZALEGA\s*\]/g, '<span style="color: #ff4d4d; font-weight: bold;">[ ZALEGA ]</span>');
             formatted = formatted.replace(/\[\s*SPŁACONE\s*\]/g, '<span style="color: #4bb543; font-weight: bold;">[SPŁACONE]</span>');
+            formatted = formatted.replace(/\[\s*ODROBIONE\s*\]/g, '<span style="color: #4bb543; font-weight: bold;">[ODROBIONE]</span>');
             
             formatted = formatted.replace(/--- PRZYCHODY ---/g, '<span style="color: #4bb543; font-weight: bold;">--- PRZYCHODY ---</span>');
             formatted = formatted.replace(/RAZEM PRZYCHODY:/g, '<span style="color: #4bb543; font-weight: bold;">RAZEM PRZYCHODY:</span>');
@@ -535,14 +542,15 @@
                 const resObj = formatBotResponse(data.response || "Brak odpowiedzi.");
                 botBox.innerHTML = resObj.content;
 
-                if (text.toLowerCase().includes('/tablica')) {
+                const lowerText = text.toLowerCase();
+                if (lowerText.includes('/podatki') || lowerText.includes('/panszczyzna') || lowerText.includes('/tablica')) {
                     const btnContainer = document.createElement('div');
                     btnContainer.className = 'action-buttons';
 
                     const refreshBtn = document.createElement('button');
                     refreshBtn.className = 'action-btn refresh-btn';
                     refreshBtn.innerHTML = '🔄 Odśwież';
-                    refreshBtn.onclick = () => sendCommand('/tablica');
+                    refreshBtn.onclick = () => sendCommand(text);
 
                     const searchBtn = document.createElement('button');
                     searchBtn.className = 'action-btn search-btn';
