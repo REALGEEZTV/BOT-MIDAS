@@ -487,9 +487,9 @@
                 .replace(/```text\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
                 .replace(/```\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
             
-            // Kolorowanie statusów
-            formatted = formatted.replace(/\[ ZALEGA \]/g, '<span style="color: #ff4d4d; font-weight: bold;">[ ZALEGA ]</span>');
-            formatted = formatted.replace(/\[SPŁACONE\]/g, '<span style="color: #4bb543; font-weight: bold;">[SPŁACONE]</span>');
+            // Elastyczne dopasowanie spacji dla kolorowania statusów
+            formatted = formatted.replace(/\[\s*ZALEGA\s*\]/g, '<span style="color: #ff4d4d; font-weight: bold;">[ ZALEGA ]</span>');
+            formatted = formatted.replace(/\[\s*SPŁACONE\s*\]/g, '<span style="color: #4bb543; font-weight: bold;">[SPŁACONE]</span>');
             
             formatted = formatted.replace(/--- PRZYCHODY ---/g, '<span style="color: #4bb543; font-weight: bold;">--- PRZYCHODY ---</span>');
             formatted = formatted.replace(/RAZEM PRZYCHODY:/g, '<span style="color: #4bb543; font-weight: bold;">RAZEM PRZYCHODY:</span>');
