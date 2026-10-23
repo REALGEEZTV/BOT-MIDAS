@@ -19,7 +19,6 @@
             overflow: hidden;
         }
 
-        /* Ekran logowania (Overlay) */
         #loginOverlay {
             position: fixed;
             top: 0;
@@ -83,7 +82,6 @@
             display: none;
         }
 
-        /* Główny układ */
         .sidebar {
             width: 300px;
             background-color: #161622;
@@ -361,7 +359,6 @@
 </head>
 <body>
 
-    <!-- Ekran logowania -->
     <div id="loginOverlay">
         <div class="login-card">
             <h2>Skarbiec Wioski</h2>
@@ -476,6 +473,7 @@
             { cmd: '/poradnik', desc: 'Wyświetla instrukcję obsługi i pomoc' },
             { cmd: '/dodaj', desc: 'Dodaje mieszkańca (/dodaj Imię Nazwisko kwota)' },
             { cmd: '/wplata', desc: 'Rejestruje wpłatę podatku (/wplata Imię Nazwisko kwota)' },
+            { cmd: '/dodajdlug', desc: 'Nalicza dług / grzywnę (/dodajdlug Imię Nazwisko kwota)' },
             { cmd: '/wplatadlug', desc: 'Wpłaca pieniądze na dług (/wplatadlug Imię Nazwisko kwota)' },
             { cmd: '/splacdlug', desc: 'Całkowicie spłaca dług (/splacdlug Imię Nazwisko)' },
             { cmd: '/zmienpodatek', desc: 'Zmienia podatek konkretnej osobie' },
@@ -567,7 +565,7 @@
                 return;
             }
 
-            if (['/wplata', '/wplatadlug', '/splacdlug', '/usun', '/dodaj', '/zmienpodatek'].includes(currentCmd)) {
+            if (['/wplata', '/dodajdlug', '/wplatadlug', '/splacdlug', '/usun', '/dodaj', '/zmienpodatek'].includes(currentCmd)) {
                 if (cachedMieszkancy.length === 0) await fetchSidebarData();
 
                 const typedName = parts.slice(1).join(' ').toLowerCase();
