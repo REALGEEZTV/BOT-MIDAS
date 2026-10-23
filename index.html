@@ -59,7 +59,7 @@
             gap: 15px;
         }
         .message {
-            max-width: 95%; /* Zwiększona szerokość okna wiadomości */
+            max-width: 95%;
             padding: 14px 18px;
             border-radius: 8px;
             line-height: 1.5;
@@ -93,22 +93,41 @@
             font-size: 0.9rem;
             overflow-x: auto;
         }
-        /* Przycisk odświeżania jako osobny blok poniżej treści */
-        .refresh-btn {
+        /* Styl przycisków akcji */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
             margin-top: 15px;
+            margin-bottom: 10px;
+        }
+        .action-btn {
             padding: 8px 16px;
-            background-color: #5865F2;
-            color: white;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            display: block;
-            width: fit-content;
+            color: white;
             transition: background-color 0.2s;
+        }
+        .refresh-btn {
+            background-color: #5865F2;
         }
         .refresh-btn:hover {
             background-color: #4752C4;
+        }
+        .search-btn {
+            background-color: #e67e22;
+        }
+        .search-btn:hover {
+            background-color: #d35400;
+        }
+        /* Stopka wiadomości */
+        .msg-footer {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #8888aa;
+            border-top: 1px solid #363650;
+            padding-top: 8px;
         }
         .chat-input-area {
             padding: 20px;
@@ -178,6 +197,14 @@
         });
 
         function formatBotResponse(text) {
+            let footerHtml = '';
+            // Oddzielamy stopkę od reszty wiadomości
+            if (text.includes('Kingdom Come Deliverance 2 RP')) {
+                const parts = text.split('Kingdom Come Deliverance 2 RP');
+                text = parts[0];
+                footerHtml = '<div class="msg-footer">Kingdom Come Deliverance 2 RP' + parts[1] + '</div>';
+            }
+
             let formatted = text
                 .replace(/```text\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
                 .replace(/```\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
@@ -198,7 +225,7 @@
             // Pogrubienia markdown
             formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
             
-            return formatted;
+            return { content: formatted, footer: footerHtml };
         }
 
         async function sendCommand(commandText) {
@@ -228,14 +255,50 @@
 
                 const data = await response.json();
                 const botBox = document.getElementById(loadingId);
-                botBox.innerHTML = formatBotResponse(data.response || "Brak odpowiedzi.");
+                
+                const resObj = formatBotResponse(data.response || "Brak odpowiedzi.");
+                botBox.innerHTML = resObj.content;
 
+                // Jeśli to tablica, dodajemy przyciski nad stopką
                 if (text.toLowerCase().includes('/tablica')) {
-                    const btn = document.createElement('button');
-                    btn.className = 'refresh-btn';
-                    btn.innerHTML = '🔄 Odśwież';
-                    btn.onclick = () => sendCommand('/tablica');
-                    botBox.appendChild(btn);
+                    const btnContainer = document.createElement('div');
+                    btnContainer.className = 'action-buttons';
+
+                    const refreshBtn = document.createElement('button');
+                    refreshBtn.className = 'action-btn refresh-btn';
+                    refreshBtn.innerHTML = '🔄 Odśwież';
+                    refreshBtn.onclick = () => sendCommand('/tablica');
+
+                    const searchBtn = document.createElement('button');
+                    searchBtn.className = 'action-btn search-btn';
+                    searchBtn.innerHTML = '🔍 Szukaj';
+                    searchBtn.onclick = () => {
+                        const query = prompt("Wpisz imię lub nazwisko podatnika do wyszukania:").toLowerCase();
+                        if (!query) return;
+                        const codeBlock = botBox.querySelector('pre code');
+                        if (codeBlock) {
+                            const lines = codeBlock.innerText.split('\n');
+                            const filtered = lines.filter(line => 
+                                line.toLowerCase().includes(query) || 
+                                line.includes('Podatki Mieszkańców') || 
+                                line.includes('---') || 
+                                line.includes('Nieopłacone')
+                            );
+                            codeBlock.innerText = filtered.join('\n');
+                        }
+                    };
+
+                    btnContainer.appendChild(refreshBtn);
+                    btnContainer.appendChild(searchBtn);
+                    botBox.appendChild(btnContainer);
+                }
+
+                // Dodajemy stopkę pod przyciskami
+                if (resObj.footer) {
+                    const footerDiv = document.createElement('div');
+                    footerDiv.className = 'msg-footer';
+                    footerDiv.innerHTML = resObj.footer;
+                    botBox.appendChild(footerDiv);
                 }
 
                 chatMessages.scrollTop = chatMessages.scrollHeight;
