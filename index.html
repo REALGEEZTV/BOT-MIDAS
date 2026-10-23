@@ -59,7 +59,7 @@
             gap: 15px;
         }
         .message {
-            max-width: 85%;
+            max-width: 95%; /* Zwiększona szerokość okna wiadomości */
             padding: 14px 18px;
             border-radius: 8px;
             line-height: 1.5;
@@ -93,8 +93,9 @@
             font-size: 0.9rem;
             overflow-x: auto;
         }
+        /* Przycisk odświeżania jako osobny blok poniżej treści */
         .refresh-btn {
-            margin-top: 10px;
+            margin-top: 15px;
             padding: 8px 16px;
             background-color: #5865F2;
             color: white;
@@ -102,9 +103,8 @@
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
+            display: block;
+            width: fit-content;
             transition: background-color 0.2s;
         }
         .refresh-btn:hover {
@@ -186,7 +186,7 @@
             formatted = formatted.replace(/\[ZALEGA\]/g, '<span style="color: #ff4d4d; font-weight: bold;">[ZALEGA]</span>');
             formatted = formatted.replace(/\[\s*OK\s*\]/g, '<span style="color: #4bb543; font-weight: bold;">[  OK  ]</span>');
             
-            // Kolorowanie bilansu (Przychody - zielony, Wydatki - czerwony, Stan skarbca - złoty)
+            // Kolorowanie bilansu
             formatted = formatted.replace(/--- PRZYCHODY ---/g, '<span style="color: #4bb543; font-weight: bold;">--- PRZYCHODY ---</span>');
             formatted = formatted.replace(/RAZEM PRZYCHODY:/g, '<span style="color: #4bb543; font-weight: bold;">RAZEM PRZYCHODY:</span>');
             
@@ -195,7 +195,7 @@
             
             formatted = formatted.replace(/= STAN SKARBCA:/g, '<span style="color: #d4af37; font-weight: bold;">= STAN SKARBCA:</span>');
             
-            // Pogrubienia markdown **tekst**
+            // Pogrubienia markdown
             formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
             
             return formatted;
