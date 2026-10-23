@@ -19,22 +19,82 @@
             overflow: hidden;
         }
         .sidebar {
-            width: 250px;
+            width: 300px;
             background-color: #161622;
             border-right: 1px solid #2a2a40;
             padding: 20px;
             display: flex;
             flex-direction: column;
+            gap: 15px;
+            overflow: hidden;
         }
         .sidebar h2 {
             font-size: 1.2rem;
-            margin-bottom: 20px;
             color: #ffffff;
+            border-bottom: 2px solid #d4af37;
+            padding-bottom: 8px;
         }
         .sidebar p {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: #a0a0c0;
+            line-height: 1.4;
         }
+        .sidebar-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .sidebar-btn {
+            padding: 10px 14px;
+            background-color: #222235;
+            color: #e0e0e0;
+            border: 1px solid #363650;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .sidebar-btn:hover {
+            background-color: #2b5278;
+            color: #ffffff;
+            border-color: #4a75a0;
+        }
+
+        /* Sekcja transakcji w panelu bocznym */
+        .sidebar-section {
+            margin-top: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar-section h3 {
+            font-size: 0.95rem;
+            color: #d4af37;
+            border-bottom: 1px solid #2a2a40;
+            padding-bottom: 5px;
+        }
+        .sidebar-tx-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 4px;
+        }
+        .tx-item {
+            background-color: #1e1e2f;
+            padding: 8px 10px;
+            border-radius: 4px;
+            border-left: 3px solid #5865F2;
+            font-size: 0.82rem;
+            color: #c0c0d0;
+            word-break: break-word;
+        }
+
         .chat-container {
             flex: 1;
             display: flex;
@@ -130,7 +190,7 @@
             padding-top: 8px;
         }
 
-        /* --- PODPOWIEDZI --- */
+        /* PODPOWIEDZI */
         .chat-input-wrapper {
             position: relative;
             padding: 20px;
@@ -173,9 +233,6 @@
             color: #8888aa;
             font-size: 0.85rem;
         }
-        .suggestion-item:hover .suggestion-desc, .suggestion-item.active .suggestion-desc {
-            color: #d0d0e0;
-        }
 
         .chat-input-area {
             display: flex;
@@ -214,6 +271,18 @@
     <div class="sidebar">
         <h2>Panel Skarbnika</h2>
         <p>Zarządzaj podatkami i budżetem wioski KCD2 RP.</p>
+        
+        <div class="sidebar-menu">
+            <button class="sidebar-btn" onclick="sendCommand('/tablica')">📊 Pokaż Tablicę</button>
+            <button class="sidebar-btn" onclick="sendCommand('/poradnik')">📖 Instrukcja / Pomoc</button>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>📜 Ostatnie Operacje</h3>
+            <div id="sidebarTransactions" class="sidebar-tx-list">
+                <span style="color: #8888aa; font-size: 0.85rem;">Ładowanie...</span>
+            </div>
+        </div>
     </div>
 
     <div class="chat-container">
@@ -254,18 +323,40 @@
         let cachedMieszkancy = [];
         let activeSuggestionIndex = 0;
 
-        // Pobierz aktualną listę mieszkańców z Pythona
-        async function fetchMieszkancy() {
+        // Automatyczne ładowanie danych do panelu bocznego
+        async function fetchSidebarData() {
             try {
-                const res = await fetch('http://localhost:5000/api/mieszkancy');
-                const data = await res.json();
-                cachedMieszkancy = data.mieszkancy || [];
+                // 1. Pobierz mieszkańców do podpowiedzi
+                const resM = await fetch('http://localhost:5000/api/mieszkancy');
+                const dataM = await resM.json();
+                cachedMieszkancy = dataM.mieszkancy || [];
+
+                // 2. Pobierz ostatnie transakcje do panelu bocznego
+                const resT = await fetch('http://localhost:5000/api/transakcje');
+                const dataT = await resT.json();
+                const txList = document.getElementById('sidebarTransactions');
+                txList.innerHTML = '';
+
+                if (!dataT.transakcje || dataT.transakcje.length === 0) {
+                    txList.innerHTML = '<span style="color: #8888aa; font-size: 0.85rem;">Brak zarejestrowanych operacji.</span>';
+                    return;
+                }
+
+                dataT.transakcje.forEach(tx => {
+                    const div = document.createElement('div');
+                    div.className = 'tx-item';
+                    div.textContent = tx;
+                    txList.appendChild(div);
+                });
             } catch (e) {
-                console.error("Błąd pobierania mieszkańców:", e);
+                console.error("Błąd odświeżania panelu bocznego:", e);
             }
         }
 
-        userInput.addEventListener('focus', fetchMieszkancy);
+        // Odświeżaj panel boczny automatycznie co 4 sekundy
+        setInterval(fetchSidebarData, 4000);
+        fetchSidebarData();
+
         userInput.addEventListener('input', showSuggestions);
 
         userInput.addEventListener('keydown', function (e) {
@@ -285,8 +376,7 @@
                 } else if (e.key === 'Tab' || (e.key === 'Enter' && activeSuggestionIndex >= 0)) {
                     if (items[activeSuggestionIndex]) {
                         e.preventDefault();
-                        const selectedVal = items[activeSuggestionIndex].dataset.val;
-                        selectSuggestion(selectedVal);
+                        selectSuggestion(items[activeSuggestionIndex].dataset.val);
                         return;
                     }
                 }
@@ -310,7 +400,6 @@
             const parts = rawVal.split(' ');
             const currentCmd = parts[0].toLowerCase();
 
-            // 1. Jeśli użytkownik wpisuje samo /komenda
             if (parts.length === 1) {
                 const matches = COMMANDS.filter(c => c.cmd.toLowerCase().startsWith(val));
                 if (matches.length === 0) { hideSuggestions(); return; }
@@ -319,9 +408,8 @@
                 return;
             }
 
-            // 2. Jeśli wpisano komendę wymagającą mieszkańca (np. /wplata, /usun, /dodaj)
             if (['/wplata', '/usun', '/dodaj', '/tablica'].includes(currentCmd)) {
-                if (cachedMieszkancy.length === 0) await fetchMieszkancy();
+                if (cachedMieszkancy.length === 0) await fetchSidebarData();
 
                 const typedName = parts.slice(1).join(' ').toLowerCase();
                 const matchedPeople = cachedMieszkancy.filter(name => name.toLowerCase().includes(typedName));
@@ -479,7 +567,7 @@
                 }
 
                 chatMessages.scrollTop = chatMessages.scrollHeight;
-                fetchMieszkancy(); // Zaktualizuj listę mieszkańców po wykonaniu komendy
+                fetchSidebarData(); // Natychmiast zaktualizuj panel boczny po wykonaniu komendy
 
             } catch (error) {
                 document.getElementById(loadingId).remove();
