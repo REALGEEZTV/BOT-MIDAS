@@ -18,6 +18,72 @@
             height: 100vh;
             overflow: hidden;
         }
+
+        /* Ekran logowania (Overlay) */
+        #loginOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(16, 16, 26, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .login-card {
+            background-color: #161622;
+            border: 2px solid #d4af37;
+            padding: 30px;
+            border-radius: 10px;
+            width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+        }
+        .login-card h2 {
+            color: #ffffff;
+            text-align: center;
+            border-bottom: 2px solid #d4af37;
+            padding-bottom: 10px;
+            font-size: 1.4rem;
+        }
+        .login-card label {
+            font-size: 0.85rem;
+            color: #a0a0c0;
+        }
+        .login-card select, .login-card input {
+            padding: 10px;
+            background-color: #1e1e2f;
+            border: 1px solid #363650;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 1rem;
+        }
+        .login-card button {
+            padding: 12px;
+            background-color: #d4af37;
+            color: #161622;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+        .login-card button:hover {
+            background-color: #e6c547;
+        }
+        #loginError {
+            color: #ff4d4d;
+            font-size: 0.85rem;
+            text-align: center;
+            display: none;
+        }
+
+        /* Główny układ */
         .sidebar {
             width: 300px;
             background-color: #161622;
@@ -38,6 +104,20 @@
             font-size: 0.85rem;
             color: #a0a0c0;
             line-height: 1.4;
+        }
+        .user-info-box {
+            background-color: #1e1e2f;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #363650;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+        .user-info-box span {
+            color: #d4af37;
+            font-weight: bold;
         }
         .sidebar-menu {
             display: flex;
@@ -281,10 +361,35 @@
 </head>
 <body>
 
+    <!-- Ekran logowania blokujący dostęp -->
+    <div id="loginOverlay">
+        <div class="login-card">
+            <h2>Skarbiec Wioski</h2>
+            <div>
+                <label for="loginRole">Wybierz swoją osobę:</label>
+                <select id="loginRole" style="width: 100%; margin-top: 5px;">
+                    <option value="Jakub Schwarz">Jakub Schwarz (Skarbnik)</option>
+                    <option value="Pavel Šuk">Pavel Šuk (Głowa Rodu)</option>
+                    <option value="Henryk Šuk">Henryk Šuk (Głowa Rodu)</option>
+                </select>
+            </div>
+            <div>
+                <label for="loginPassword">Hasło dostępu:</label>
+                <input type="password" id="loginPassword" placeholder="Wpisz hasło..." style="width: 100%; margin-top: 5px;" autocomplete="current-password">
+            </div>
+            <div id="loginError">Błędne hasło! Spróbuj ponownie.</div>
+            <button onclick="handleLogin()">Zaloguj się</button>
+        </div>
+    </div>
+
     <div class="sidebar">
         <h2>Panel Skarbnika</h2>
         <p>Zarządzaj finansami i pańszczyzną wioski KCD2 RP.</p>
         
+        <div class="user-info-box">
+            Zalogowany: <span id="currentRoleDisplay">Jakub Schwarz</span>
+        </div>
+
         <div class="sidebar-menu">
             <button class="sidebar-btn" onclick="sendCommand('/podatki')">👤 Pokaż Podatki</button>
             <button class="sidebar-btn" onclick="sendCommand('/skarbiec')">💰 Pokaż Skarbiec</button>
@@ -306,7 +411,7 @@
         </div>
         
         <div class="chat-messages" id="chatMessages">
-            <div class="message bot">Witaj skarbniku! Wybierz opcję z lewego menu lub wpisz **/poradnik**.</div>
+            <div class="message bot">Witaj! Wybierz opcję z lewego menu lub wpisz **/poradnik**.</div>
         </div>
 
         <div class="chat-input-wrapper">
@@ -323,6 +428,43 @@
         const chatMessages = document.getElementById('chatMessages');
         const userInput = document.getElementById('userInput');
         const suggestionsPopup = document.getElementById('suggestionsPopup');
+        const loginOverlay = document.getElementById('loginOverlay');
+        const loginRole = document.getElementById('loginRole');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginError = document.getElementById('loginError');
+        const currentRoleDisplay = document.getElementById('currentRoleDisplay');
+
+        let loggedInRole = "Jakub Schwarz";
+
+        async function handleLogin() {
+            const rola = loginRole.value;
+            const haslo = loginPassword.value;
+
+            try {
+                const res = await fetch('http://localhost:5000/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rola, haslo })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    loggedInRole = rola;
+                    currentRoleDisplay.textContent = rola;
+                    loginOverlay.style.display = 'none';
+                    fetchSidebarData();
+                } else {
+                    loginError.style.display = 'block';
+                }
+            } catch (e) {
+                loginError.textContent = "Błąd połączenia z serwerem bota!";
+                loginError.style.display = 'block';
+            }
+        }
+
+        loginPassword.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') handleLogin();
+        });
 
         const COMMANDS = [
             { cmd: '/podatki', desc: 'Wyświetla listę mieszkańców i ich podatki' },
@@ -368,9 +510,6 @@
                 console.error("Błąd odświeżania panelu bocznego:", e);
             }
         }
-
-        setInterval(fetchSidebarData, 4000);
-        fetchSidebarData();
 
         userInput.addEventListener('input', showSuggestions);
 
@@ -516,7 +655,7 @@
 
             const userMsg = document.createElement('div');
             userMsg.classList.add('message', 'user');
-            userMsg.textContent = text;
+            userMsg.textContent = `[${loggedInRole}] ${text}`;
             chatMessages.appendChild(userMsg);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -532,7 +671,7 @@
                 const response = await fetch('http://localhost:5000/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text })
+                    body: JSON.stringify({ message: text, autor: loggedInRole })
                 });
 
                 const data = await response.json();
