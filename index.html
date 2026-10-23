@@ -493,7 +493,6 @@
                 .replace(/```text\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
                 .replace(/```\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
             
-            // Kolorowanie statusów
             formatted = formatted.replace(/\[\s*ZALEGA\s*\]/g, '<span style="color: #ff4d4d; font-weight: bold;">[ ZALEGA ]</span>');
             formatted = formatted.replace(/\[\s*SPŁACONE\s*\]/g, '<span style="color: #4bb543; font-weight: bold;">[SPŁACONE]</span>');
             formatted = formatted.replace(/\[\s*ODROBIONE\s*\]/g, '<span style="color: #4bb543; font-weight: bold;">[ODROBIONE]</span>');
