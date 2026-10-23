@@ -62,7 +62,7 @@
             border-color: #4a75a0;
         }
 
-        /* Sekcja transakcji w panelu bocznym */
+        /* Sekcja transakcji z dedykowanym, eleganckim suwakiem */
         .sidebar-section {
             margin-top: 5px;
             display: flex;
@@ -83,8 +83,25 @@
             gap: 6px;
             overflow-y: auto;
             flex: 1;
-            padding-right: 4px;
+            padding-right: 6px;
         }
+        
+        /* Stylizacja suwaka (scrollbar) */
+        .sidebar-tx-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar-tx-list::-webkit-scrollbar-track {
+            background: #161622;
+            border-radius: 4px;
+        }
+        .sidebar-tx-list::-webkit-scrollbar-thumb {
+            background: #363650;
+            border-radius: 4px;
+        }
+        .sidebar-tx-list::-webkit-scrollbar-thumb:hover {
+            background: #5865F2;
+        }
+
         .tx-item {
             background-color: #1e1e2f;
             padding: 8px 10px;
@@ -323,15 +340,12 @@
         let cachedMieszkancy = [];
         let activeSuggestionIndex = 0;
 
-        // Automatyczne ładowanie danych do panelu bocznego
         async function fetchSidebarData() {
             try {
-                // 1. Pobierz mieszkańców do podpowiedzi
                 const resM = await fetch('http://localhost:5000/api/mieszkancy');
                 const dataM = await resM.json();
                 cachedMieszkancy = dataM.mieszkancy || [];
 
-                // 2. Pobierz ostatnie transakcje do panelu bocznego
                 const resT = await fetch('http://localhost:5000/api/transakcje');
                 const dataT = await resT.json();
                 const txList = document.getElementById('sidebarTransactions');
@@ -353,7 +367,6 @@
             }
         }
 
-        // Odświeżaj panel boczny automatycznie co 4 sekundy
         setInterval(fetchSidebarData, 4000);
         fetchSidebarData();
 
@@ -563,11 +576,11 @@
                     const footerDiv = document.createElement('div');
                     footerDiv.className = 'msg-footer';
                     footerDiv.innerHTML = resObj.footer;
-                    botBox.appendChild(footerDiv);
+                    botBox.appendChild(footerDict = footerDiv);
                 }
 
                 chatMessages.scrollTop = chatMessages.scrollHeight;
-                fetchSidebarData(); // Natychmiast zaktualizuj panel boczny po wykonaniu komendy
+                fetchSidebarData();
 
             } catch (error) {
                 document.getElementById(loadingId).remove();
