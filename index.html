@@ -40,6 +40,7 @@
             display: flex;
             flex-direction: column;
             background-color: #1a1a2e;
+            position: relative;
         }
         .chat-header {
             padding: 20px;
@@ -93,7 +94,6 @@
             font-size: 0.9rem;
             overflow-x: auto;
         }
-        /* Kontener na przyciski Akcji */
         .action-buttons {
             display: flex !important;
             gap: 10px;
@@ -122,7 +122,6 @@
         .search-btn:hover {
             background-color: #d35400;
         }
-        /* Stopka pod przyciskami */
         .msg-footer {
             margin-top: 8px;
             font-size: 0.85rem;
@@ -130,10 +129,55 @@
             border-top: 1px solid #363650;
             padding-top: 8px;
         }
-        .chat-input-area {
+
+        /* --- PODPOWIEDZI --- */
+        .chat-input-wrapper {
+            position: relative;
             padding: 20px;
             background-color: #1e1e2f;
             border-top: 1px solid #2a2a40;
+        }
+        .suggestions-popup {
+            position: absolute;
+            bottom: 75px;
+            left: 20px;
+            right: 20px;
+            background-color: #161622;
+            border: 1px solid #363650;
+            border-radius: 6px;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 100;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .suggestion-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            color: #e0e0e0;
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #222235;
+        }
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        .suggestion-item:hover, .suggestion-item.active {
+            background-color: #2b5278;
+            color: #ffffff;
+        }
+        .suggestion-desc {
+            color: #8888aa;
+            font-size: 0.85rem;
+        }
+        .suggestion-item:hover .suggestion-desc, .suggestion-item.active .suggestion-desc {
+            color: #d0d0e0;
+        }
+
+        .chat-input-area {
             display: flex;
             gap: 10px;
         }
@@ -181,26 +225,161 @@
             <div class="message bot">Witaj skarbniku! Wpisz **/poradnik** lub **/tablica**, aby zarządzać finansami wioski.</div>
         </div>
 
-        <div class="chat-input-area">
-            <input type="text" id="userInput" placeholder="Wpisz komendę (np. /tablica, /dodaj)..." autocomplete="off">
-            <button onclick="handleSend()">Wyślij</button>
+        <div class="chat-input-wrapper">
+            <div class="suggestions-popup" id="suggestionsPopup"></div>
+
+            <div class="chat-input-area">
+                <input type="text" id="userInput" placeholder="Wpisz komendę (np. /tablica, /wplata)..." autocomplete="off">
+                <button onclick="handleSend()">Wyślij</button>
+            </div>
         </div>
     </div>
 
     <script>
         const chatMessages = document.getElementById('chatMessages');
         const userInput = document.getElementById('userInput');
+        const suggestionsPopup = document.getElementById('suggestionsPopup');
 
-        userInput.addEventListener('keypress', function (e) {
+        const COMMANDS = [
+            { cmd: '/tablica', desc: 'Wyświetla stan skarbca i listę podatników' },
+            { cmd: '/poradnik', desc: 'Wyświetla instrukcję obsługi i pomoc' },
+            { cmd: '/dodaj', desc: 'Dodaje mieszkańca (/dodaj Imię Nazwisko kwota)' },
+            { cmd: '/wplata', desc: 'Rejestruje wpłatę podatku (/wplata Imię Nazwisko kwota)' },
+            { cmd: '/wydatek', desc: 'Rejestruje wydatek skarbca (/wydatek kategoria kwota powód)' },
+            { cmd: '/wplyw', desc: 'Rejestruje wpływ do skarbca (/wplyw kategoria kwota powód)' },
+            { cmd: '/transakcje', desc: 'Pokazuje historię ostatnich operacji' },
+            { cmd: '/usun', desc: 'Usuwa mieszkańca z rejestru (/usun Imię Nazwisko)' }
+        ];
+
+        let cachedMieszkancy = [];
+        let activeSuggestionIndex = 0;
+
+        // Pobierz aktualną listę mieszkańców z Pythona
+        async function fetchMieszkancy() {
+            try {
+                const res = await fetch('http://localhost:5000/api/mieszkancy');
+                const data = await res.json();
+                cachedMieszkancy = data.mieszkancy || [];
+            } catch (e) {
+                console.error("Błąd pobierania mieszkańców:", e);
+            }
+        }
+
+        userInput.addEventListener('focus', fetchMieszkancy);
+        userInput.addEventListener('input', showSuggestions);
+
+        userInput.addEventListener('keydown', function (e) {
+            const items = suggestionsPopup.querySelectorAll('.suggestion-item');
+            
+            if (suggestionsPopup.style.display === 'flex' && items.length > 0) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
+                    updateActiveSuggestion(items);
+                    return;
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
+                    updateActiveSuggestion(items);
+                    return;
+                } else if (e.key === 'Tab' || (e.key === 'Enter' && activeSuggestionIndex >= 0)) {
+                    if (items[activeSuggestionIndex]) {
+                        e.preventDefault();
+                        const selectedVal = items[activeSuggestionIndex].dataset.val;
+                        selectSuggestion(selectedVal);
+                        return;
+                    }
+                }
+            }
+
             if (e.key === 'Enter') {
+                hideSuggestions();
                 handleSend();
+            }
+        });
+
+        async function showSuggestions() {
+            const rawVal = userInput.value;
+            const val = rawVal.trim().toLowerCase();
+
+            if (!val.startsWith('/')) {
+                hideSuggestions();
+                return;
+            }
+
+            const parts = rawVal.split(' ');
+            const currentCmd = parts[0].toLowerCase();
+
+            // 1. Jeśli użytkownik wpisuje samo /komenda
+            if (parts.length === 1) {
+                const matches = COMMANDS.filter(c => c.cmd.toLowerCase().startsWith(val));
+                if (matches.length === 0) { hideSuggestions(); return; }
+
+                renderPopup(matches.map(m => ({ text: m.cmd, desc: m.desc, fill: m.cmd + ' ' })));
+                return;
+            }
+
+            // 2. Jeśli wpisano komendę wymagającą mieszkańca (np. /wplata, /usun, /dodaj)
+            if (['/wplata', '/usun', '/dodaj', '/tablica'].includes(currentCmd)) {
+                if (cachedMieszkancy.length === 0) await fetchMieszkancy();
+
+                const typedName = parts.slice(1).join(' ').toLowerCase();
+                const matchedPeople = cachedMieszkancy.filter(name => name.toLowerCase().includes(typedName));
+
+                if (matchedPeople.length === 0) { hideSuggestions(); return; }
+
+                renderPopup(matchedPeople.map(person => ({
+                    text: person,
+                    desc: 'Mieszkaniec',
+                    fill: currentCmd + ' ' + person + ' '
+                })));
+                return;
+            }
+
+            hideSuggestions();
+        }
+
+        function renderPopup(items) {
+            suggestionsPopup.innerHTML = '';
+            activeSuggestionIndex = 0;
+
+            items.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item' + (idx === 0 ? ' active' : '');
+                div.dataset.val = item.fill;
+                div.innerHTML = `<span><b>${item.text}</b></span> <span class="suggestion-desc">${item.desc}</span>`;
+                
+                div.onclick = () => selectSuggestion(item.fill);
+                suggestionsPopup.appendChild(div);
+            });
+
+            suggestionsPopup.style.display = 'flex';
+        }
+
+        function updateActiveSuggestion(items) {
+            items.forEach((item, idx) => {
+                item.classList.toggle('active', idx === activeSuggestionIndex);
+            });
+        }
+
+        function selectSuggestion(textToFill) {
+            userInput.value = textToFill;
+            hideSuggestions();
+            userInput.focus();
+        }
+
+        function hideSuggestions() {
+            suggestionsPopup.style.display = 'none';
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.chat-input-wrapper')) {
+                hideSuggestions();
             }
         });
 
         function formatBotResponse(text) {
             let footerHtml = '';
-            
-            // Wycinamy podpis na dole, żeby dokleić go PONIŻEJ przycisków
             if (text.includes('Kingdom Come Deliverance 2 RP')) {
                 const parts = text.split('Kingdom Come Deliverance 2 RP');
                 text = parts[0];
@@ -211,11 +390,9 @@
                 .replace(/```text\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
                 .replace(/```\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
             
-            // Statusy mieszkańców
             formatted = formatted.replace(/\[ZALEGA\]/g, '<span style="color: #ff4d4d; font-weight: bold;">[ZALEGA]</span>');
             formatted = formatted.replace(/\[\s*OK\s*\]/g, '<span style="color: #4bb543; font-weight: bold;">[  OK  ]</span>');
             
-            // Kolorowanie bilansu
             formatted = formatted.replace(/--- PRZYCHODY ---/g, '<span style="color: #4bb543; font-weight: bold;">--- PRZYCHODY ---</span>');
             formatted = formatted.replace(/RAZEM PRZYCHODY:/g, '<span style="color: #4bb543; font-weight: bold;">RAZEM PRZYCHODY:</span>');
             
@@ -224,7 +401,6 @@
             
             formatted = formatted.replace(/= STAN SKARBCA:/g, '<span style="color: #d4af37; font-weight: bold;">= STAN SKARBCA:</span>');
             
-            // Pogrubienia markdown
             formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
             
             return { content: formatted, footer: footerHtml };
@@ -261,18 +437,15 @@
                 const resObj = formatBotResponse(data.response || "Brak odpowiedzi.");
                 botBox.innerHTML = resObj.content;
 
-                // Jeśli to tablica, dodajemy przyciski NAD stopką
                 if (text.toLowerCase().includes('/tablica')) {
                     const btnContainer = document.createElement('div');
                     btnContainer.className = 'action-buttons';
 
-                    // Przycisk 1: Odśwież
                     const refreshBtn = document.createElement('button');
                     refreshBtn.className = 'action-btn refresh-btn';
                     refreshBtn.innerHTML = '🔄 Odśwież';
                     refreshBtn.onclick = () => sendCommand('/tablica');
 
-                    // Przycisk 2: Szukaj
                     const searchBtn = document.createElement('button');
                     searchBtn.className = 'action-btn search-btn';
                     searchBtn.innerHTML = '🔍 Szukaj';
@@ -282,7 +455,7 @@
                         
                         const codeBlocks = botBox.querySelectorAll('pre code');
                         if (codeBlocks.length > 0) {
-                            const userTableBlock = codeBlocks[0]; // Pierwszy blok kodu to lista podatników
+                            const userTableBlock = codeBlocks[0];
                             const lines = userTableBlock.innerText.split('\n');
                             const filtered = lines.filter(line => 
                                 line.toLowerCase().includes(query.toLowerCase()) || 
@@ -298,7 +471,6 @@
                     botBox.appendChild(btnContainer);
                 }
 
-                // Dodajemy stopkę na samym dole pod przyciskami
                 if (resObj.footer) {
                     const footerDiv = document.createElement('div');
                     footerDiv.className = 'msg-footer';
@@ -307,6 +479,7 @@
                 }
 
                 chatMessages.scrollTop = chatMessages.scrollHeight;
+                fetchMieszkancy(); // Zaktualizuj listę mieszkańców po wykonaniu komendy
 
             } catch (error) {
                 document.getElementById(loadingId).remove();
