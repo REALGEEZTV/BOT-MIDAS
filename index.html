@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mój Bot Webowy - Skarbiec KCD2</title>
+    <title>Skarbiec Wioski - KCD2 RP</title>
     <style>
         * {
             box-sizing: border-box;
@@ -18,7 +18,6 @@
             height: 100vh;
             overflow: hidden;
         }
-        /* Sidebar */
         .sidebar {
             width: 250px;
             background-color: #161622;
@@ -36,7 +35,6 @@
             font-size: 0.9rem;
             color: #a0a0c0;
         }
-        /* Main chat area */
         .chat-container {
             flex: 1;
             display: flex;
@@ -61,11 +59,10 @@
             gap: 15px;
         }
         .message {
-            max-width: 75%;
-            padding: 12px 16px;
+            max-width: 85%;
+            padding: 14px 18px;
             border-radius: 8px;
-            line-height: 1.4;
-            white-space: pre-wrap;
+            line-height: 1.5;
             word-break: break-word;
         }
         .message.user {
@@ -76,12 +73,43 @@
         }
         .message.bot {
             background-color: #262638;
-            color: #e0e0e0;
+            color: #dcdcdc;
             align-self: flex-start;
             border-bottom-left-radius: 2px;
-            border: 1px solid #363650;
+            border-left: 4px solid #d4af37;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            white-space: pre-wrap;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        /* Input area */
+        .message.bot code {
+            font-family: Consolas, Monaco, monospace;
+            background-color: #1e1e2f;
+            display: block;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #363650;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        .refresh-btn {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background-color: #5865F2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background-color 0.2s;
+        }
+        .refresh-btn:hover {
+            background-color: #4752C4;
+        }
         .chat-input-area {
             padding: 20px;
             background-color: #1e1e2f;
@@ -120,21 +148,21 @@
 <body>
 
     <div class="sidebar">
-        <h2>Panel Bota</h2>
-        <p>Brak limitów znaków! Pisz śmiało.</p>
+        <h2>Panel Skarbnika</h2>
+        <p>Zarządzaj podatkami i budżetem wioski KCD2 RP.</p>
     </div>
 
     <div class="chat-container">
         <div class="chat-header">
-            <h1>Czat z Twoim Botem</h1>
+            <h1>Czat z Botem Midas</h1>
         </div>
         
         <div class="chat-messages" id="chatMessages">
-            <div class="message bot">Cześć! Jestem gotowy do działania. Wpisz np. /poradnik lub /tablica.</div>
+            <div class="message bot">Witaj skarbniku! Wpisz **/poradnik** lub **/tablica**, aby zarządzać finansami wioski.</div>
         </div>
 
         <div class="chat-input-area">
-            <input type="text" id="userInput" placeholder="Napisz wiadomość do bota..." autocomplete="off">
+            <input type="text" id="userInput" placeholder="Wpisz komendę (np. /tablica, /dodaj)..." autocomplete="off">
             <button onclick="handleSend()">Wyślij</button>
         </div>
     </div>
@@ -143,58 +171,89 @@
         const chatMessages = document.getElementById('chatMessages');
         const userInput = document.getElementById('userInput');
 
-        // Wysyłanie po naciśnięciu klawisza Enter
         userInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 handleSend();
             }
         });
 
-        function addMessage(text, sender) {
-            const msgDiv = document.createElement('div');
-            msgDiv.classList.add('message', sender);
-            msgDiv.textContent = text;
-            chatMessages.appendChild(msgDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+        function formatBotResponse(text) {
+            let formatted = text
+                .replace(/```text\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+                .replace(/```\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            
+            // Statusy mieszkańców
+            formatted = formatted.replace(/\[ZALEGA\]/g, '<span style="color: #ff4d4d; font-weight: bold;">[ZALEGA]</span>');
+            formatted = formatted.replace(/\[\s*OK\s*\]/g, '<span style="color: #4bb543; font-weight: bold;">[  OK  ]</span>');
+            
+            // Kolorowanie bilansu (Przychody - zielony, Wydatki - czerwony, Stan skarbca - złoty)
+            formatted = formatted.replace(/--- PRZYCHODY ---/g, '<span style="color: #4bb543; font-weight: bold;">--- PRZYCHODY ---</span>');
+            formatted = formatted.replace(/RAZEM PRZYCHODY:/g, '<span style="color: #4bb543; font-weight: bold;">RAZEM PRZYCHODY:</span>');
+            
+            formatted = formatted.replace(/--- WYDATKI ---/g, '<span style="color: #ff4d4d; font-weight: bold;">--- WYDATKI ---</span>');
+            formatted = formatted.replace(/RAZEM WYDATKI:/g, '<span style="color: #ff4d4d; font-weight: bold;">RAZEM WYDATKI:</span>');
+            
+            formatted = formatted.replace(/= STAN SKARBCA:/g, '<span style="color: #d4af37; font-weight: bold;">= STAN SKARBCA:</span>');
+            
+            // Pogrubienia markdown **tekst**
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            
+            return formatted;
         }
 
-        async function handleSend() {
-            const text = userInput.value.trim();
+        async function sendCommand(commandText) {
+            const text = commandText.trim();
             if (!text) return;
 
-            addMessage(text, 'user');
-            userInput.value = '';
+            const userMsg = document.createElement('div');
+            userMsg.classList.add('message', 'user');
+            userMsg.textContent = text;
+            chatMessages.appendChild(userMsg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
 
-            // Tymczasowy komunikat "Myślę..."
             const loadingId = "bot-loading-" + Date.now();
             const msgDiv = document.createElement('div');
             msgDiv.classList.add('message', 'bot');
             msgDiv.id = loadingId;
-            msgDiv.textContent = "Myślę...";
+            msgDiv.textContent = "Przetwarzanie zapytania...";
             chatMessages.appendChild(msgDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             try {
-                // Wysyłamy zapytanie do Twojego lokalnego serwera w Pythonie
                 const response = await fetch('http://localhost:5000/api/chat', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: text })
                 });
 
                 const data = await response.json();
-                
-                // Usuwamy napis "Myślę..." i wstawiamy odpowiedź od bota
-                document.getElementById(loadingId).remove();
-                addMessage(data.response || "Brak odpowiedzi od bota.", 'bot');
+                const botBox = document.getElementById(loadingId);
+                botBox.innerHTML = formatBotResponse(data.response || "Brak odpowiedzi.");
+
+                if (text.toLowerCase().includes('/tablica')) {
+                    const btn = document.createElement('button');
+                    btn.className = 'refresh-btn';
+                    btn.innerHTML = '🔄 Odśwież';
+                    btn.onclick = () => sendCommand('/tablica');
+                    botBox.appendChild(btn);
+                }
+
+                chatMessages.scrollTop = chatMessages.scrollHeight;
 
             } catch (error) {
                 document.getElementById(loadingId).remove();
-                addMessage("❌ Błąd połączenia z serwerem bota (sprawdź, czy Python działa w tle).", 'bot');
+                const errDiv = document.createElement('div');
+                errDiv.classList.add('message', 'bot');
+                errDiv.textContent = "❌ Błąd połączenia z lokalnym serwerem Pythona (sprawdź, czy konsola działa).";
+                chatMessages.appendChild(errDiv);
                 console.error(error);
             }
+        }
+
+        function handleSend() {
+            const text = userInput.value;
+            userInput.value = '';
+            sendCommand(text);
         }
     </script>
 </body>
