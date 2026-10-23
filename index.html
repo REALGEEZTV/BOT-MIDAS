@@ -361,7 +361,7 @@
 </head>
 <body>
 
-    <!-- Ekran logowania blokujący dostęp -->
+    <!-- Ekran logowania -->
     <div id="loginOverlay">
         <div class="login-card">
             <h2>Skarbiec Wioski</h2>
@@ -395,6 +395,7 @@
             <button class="sidebar-btn" onclick="sendCommand('/podatki')">👤 Pokaż Podatki</button>
             <button class="sidebar-btn" onclick="sendCommand('/skarbiec')">💰 Pokaż Skarbiec</button>
             <button class="sidebar-btn" onclick="sendCommand('/panszczyzna')">🌾 Pokaż Pańszczyznę</button>
+            <button class="sidebar-btn" onclick="sendCommand('/dlugi')">📉 Pokaż Długi</button>
             <button class="sidebar-btn" onclick="sendCommand('/poradnik')">📖 Instrukcja / Pomoc</button>
         </div>
 
@@ -419,7 +420,7 @@
             <div class="suggestions-popup" id="suggestionsPopup"></div>
 
             <div class="chat-input-area">
-                <input type="text" id="userInput" placeholder="Wpisz komendę (np. /podatki, /skarbiec)..." autocomplete="off">
+                <input type="text" id="userInput" placeholder="Wpisz komendę (np. /podatki, /dlugi)..." autocomplete="off">
                 <button onclick="handleSend()">Wyślij</button>
             </div>
         </div>
@@ -471,9 +472,12 @@
             { cmd: '/podatki', desc: 'Wyświetla listę mieszkańców i ich podatki' },
             { cmd: '/skarbiec', desc: 'Wyświetla szczegółowy bilans skarbca' },
             { cmd: '/panszczyzna', desc: 'Wyświetla rejestr odrobionej pańszczyzny' },
+            { cmd: '/dlugi', desc: 'Wyświetla rejestr długów mieszkańców' },
             { cmd: '/poradnik', desc: 'Wyświetla instrukcję obsługi i pomoc' },
             { cmd: '/dodaj', desc: 'Dodaje mieszkańca (/dodaj Imię Nazwisko kwota)' },
             { cmd: '/wplata', desc: 'Rejestruje wpłatę podatku (/wplata Imię Nazwisko kwota)' },
+            { cmd: '/wplatadlug', desc: 'Wpłaca pieniądze na dług (/wplatadlug Imię Nazwisko kwota)' },
+            { cmd: '/splacdlug', desc: 'Całkowicie spłaca dług (/splacdlug Imię Nazwisko)' },
             { cmd: '/zmienpodatek', desc: 'Zmienia podatek konkretnej osobie' },
             { cmd: '/zmienpodatekwszystkim', desc: 'Zmienia podatek wszystkim mieszkańcom' },
             { cmd: '/wydatek', desc: 'Rejestruje wydatek skarbca' },
@@ -563,7 +567,7 @@
                 return;
             }
 
-            if (['/wplata', '/usun', '/dodaj', '/zmienpodatek'].includes(currentCmd)) {
+            if (['/wplata', '/wplatadlug', '/splacdlug', '/usun', '/dodaj', '/zmienpodatek'].includes(currentCmd)) {
                 if (cachedMieszkancy.length === 0) await fetchSidebarData();
 
                 const typedName = parts.slice(1).join(' ').toLowerCase();
@@ -636,6 +640,8 @@
             formatted = formatted.replace(/\[\s*ZALEGA\s*\]/g, '<span style="color: #ff4d4d; font-weight: bold;">[ ZALEGA ]</span>');
             formatted = formatted.replace(/\[\s*SPŁACONE\s*\]/g, '<span style="color: #4bb543; font-weight: bold;">[SPŁACONE]</span>');
             formatted = formatted.replace(/\[\s*ODROBIONE\s*\]/g, '<span style="color: #4bb543; font-weight: bold;">[ODROBIONE]</span>');
+            formatted = formatted.replace(/\[\s*ZADŁUŻONY\s*\]/g, '<span style="color: #ff4d4d; font-weight: bold;">[ZADŁUŻONY]</span>');
+            formatted = formatted.replace(/\[\s*CZYSTY\s*\]/g, '<span style="color: #4bb543; font-weight: bold;">[ CZYSTY ]</span>');
             
             formatted = formatted.replace(/--- PRZYCHODY ---/g, '<span style="color: #4bb543; font-weight: bold;">--- PRZYCHODY ---</span>');
             formatted = formatted.replace(/RAZEM PRZYCHODY:/g, '<span style="color: #4bb543; font-weight: bold;">RAZEM PRZYCHODY:</span>');
@@ -682,7 +688,7 @@
                 botBox.innerHTML = resObj.content;
 
                 const lowerText = text.toLowerCase();
-                if (lowerText.includes('/podatki') || lowerText.includes('/panszczyzna') || lowerText.includes('/tablica')) {
+                if (lowerText.includes('/podatki') || lowerText.includes('/panszczyzna') || lowerText.includes('/dlugi') || lowerText.includes('/tablica')) {
                     const btnContainer = document.createElement('div');
                     btnContainer.className = 'action-buttons';
 
@@ -705,7 +711,8 @@
                             const filtered = lines.filter(line => 
                                 line.toLowerCase().includes(query.toLowerCase()) || 
                                 line.includes('----------------') || 
-                                line.includes('Nieopłacone')
+                                line.includes('Nieopłacone') ||
+                                line.includes('Łączny dług')
                             );
                             userTableBlock.innerText = filtered.join('\n');
                         }
