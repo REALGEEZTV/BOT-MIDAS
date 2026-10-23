@@ -274,6 +274,12 @@
         .search-btn:hover {
             background-color: #d35400;
         }
+        .sort-btn {
+            background-color: #27ae60;
+        }
+        .sort-btn:hover {
+            background-color: #219653;
+        }
         .msg-footer {
             margin-top: 8px;
             font-size: 0.85rem;
@@ -469,11 +475,12 @@
         const COMMANDS = [
             { cmd: '/podatki', desc: 'Wyświetla listę mieszkańców i ich podatki' },
             { cmd: '/skarbiec', desc: 'Wyświetla szczegółowy bilans skarbca' },
-            { cmd: '/panszczyzna', desc: 'Wyświetla rejestr odrobionej pańszczyzny' },
+            { cmd: '/panszczyzna', desc: 'Wyświetla rejestr pańszczyzny' },
             { cmd: '/dlugi', desc: 'Wyświetla rejestr długów mieszkańców' },
             { cmd: '/grzywny', desc: 'Kartoteka grzywien (/grzywny Imię Nazwisko)' },
             { cmd: '/poradnik', desc: 'Wyświetla instrukcję obsługi i pomoc' },
             { cmd: '/dodaj', desc: 'Dodaje mieszkańca (/dodaj Imię Nazwisko kwota)' },
+            { cmd: '/zawod', desc: 'Przypisuje zawód (/zawod Imię Nazwisko zawód)' },
             { cmd: '/wplata', desc: 'Rejestruje wpłatę podatku (/wplata Imię Nazwisko kwota)' },
             { cmd: '/grzywna', desc: 'Nalicza grzywnę (/grzywna Imię Nazwisko kwota powód)' },
             { cmd: '/dodajdlug', desc: 'Nalicza dług (/dodajdlug Imię Nazwisko kwota)' },
@@ -568,7 +575,7 @@
                 return;
             }
 
-            if (['/wplata', '/grzywna', '/grzywny', '/dodajdlug', '/wplatadlug', '/splacdlug', '/usun', '/dodaj', '/zmienpodatek'].includes(currentCmd)) {
+            if (['/wplata', '/zawod', '/grzywna', '/grzywny', '/dodajdlug', '/wplatadlug', '/splacdlug', '/usun', '/dodaj', '/zmienpodatek'].includes(currentCmd)) {
                 if (cachedMieszkancy.length === 0) await fetchSidebarData();
 
                 const typedName = parts.slice(1).join(' ').toLowerCase();
@@ -698,11 +705,27 @@
                     refreshBtn.innerHTML = '🔄 Odśwież';
                     refreshBtn.onclick = () => sendCommand(text);
 
+                    // Jeśli jesteśmy w widoku pańszczyzny, dodajemy przycisk "Sortuj"
+                    if (lowerText.includes('/panszczyzna')) {
+                        const sortBtn = document.createElement('button');
+                        sortBtn.className = 'action-btn sort-btn';
+                        sortBtn.innerHTML = '🔀 Sortuj';
+                        sortBtn.onclick = () => {
+                            const wybor = confirm("Kliknij OK, aby posortować po ZAWODZIE.\nKliknij Anuluj, aby posortować ALFABETYCZNIE.");
+                            if (wybor) {
+                                sendCommand('/panszczyzna zawod');
+                            } else {
+                                sendCommand('/panszczyzna');
+                            }
+                        };
+                        btnContainer.appendChild(sortBtn);
+                    }
+
                     const searchBtn = document.createElement('button');
                     searchBtn.className = 'action-btn search-btn';
                     searchBtn.innerHTML = '🔍 Szukaj Mieszkańca';
                     searchBtn.onclick = () => {
-                        const query = prompt("Wpisz imię i nazwisko mieszkańca do wyszukania w kartotece:");
+                        const query = prompt("Wpisz imię i nazwisko mieszkańca do wyszukania:");
                         if (!query) return;
                         
                         if (lowerText.includes('/grzywny')) {
