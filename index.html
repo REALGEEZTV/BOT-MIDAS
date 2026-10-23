@@ -93,12 +93,12 @@
             font-size: 0.9rem;
             overflow-x: auto;
         }
-        /* Styl przycisków akcji */
+        /* Kontener na przyciski Akcji */
         .action-buttons {
-            display: flex;
+            display: flex !important;
             gap: 10px;
             margin-top: 15px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         .action-btn {
             padding: 8px 16px;
@@ -108,6 +108,7 @@
             font-weight: bold;
             color: white;
             transition: background-color 0.2s;
+            font-size: 0.9rem;
         }
         .refresh-btn {
             background-color: #5865F2;
@@ -121,9 +122,9 @@
         .search-btn:hover {
             background-color: #d35400;
         }
-        /* Stopka wiadomości */
+        /* Stopka pod przyciskami */
         .msg-footer {
-            margin-top: 10px;
+            margin-top: 8px;
             font-size: 0.85rem;
             color: #8888aa;
             border-top: 1px solid #363650;
@@ -198,11 +199,12 @@
 
         function formatBotResponse(text) {
             let footerHtml = '';
-            // Oddzielamy stopkę od reszty wiadomości
+            
+            // Wycinamy podpis na dole, żeby dokleić go PONIŻEJ przycisków
             if (text.includes('Kingdom Come Deliverance 2 RP')) {
                 const parts = text.split('Kingdom Come Deliverance 2 RP');
                 text = parts[0];
-                footerHtml = '<div class="msg-footer">Kingdom Come Deliverance 2 RP' + parts[1] + '</div>';
+                footerHtml = 'Kingdom Come Deliverance 2 RP' + parts[1];
             }
 
             let formatted = text
@@ -259,32 +261,35 @@
                 const resObj = formatBotResponse(data.response || "Brak odpowiedzi.");
                 botBox.innerHTML = resObj.content;
 
-                // Jeśli to tablica, dodajemy przyciski nad stopką
+                // Jeśli to tablica, dodajemy przyciski NAD stopką
                 if (text.toLowerCase().includes('/tablica')) {
                     const btnContainer = document.createElement('div');
                     btnContainer.className = 'action-buttons';
 
+                    // Przycisk 1: Odśwież
                     const refreshBtn = document.createElement('button');
                     refreshBtn.className = 'action-btn refresh-btn';
                     refreshBtn.innerHTML = '🔄 Odśwież';
                     refreshBtn.onclick = () => sendCommand('/tablica');
 
+                    // Przycisk 2: Szukaj
                     const searchBtn = document.createElement('button');
                     searchBtn.className = 'action-btn search-btn';
                     searchBtn.innerHTML = '🔍 Szukaj';
                     searchBtn.onclick = () => {
-                        const query = prompt("Wpisz imię lub nazwisko podatnika do wyszukania:").toLowerCase();
+                        const query = prompt("Wpisz imię lub nazwisko mieszkańca do wyszukania:");
                         if (!query) return;
-                        const codeBlock = botBox.querySelector('pre code');
-                        if (codeBlock) {
-                            const lines = codeBlock.innerText.split('\n');
+                        
+                        const codeBlocks = botBox.querySelectorAll('pre code');
+                        if (codeBlocks.length > 0) {
+                            const userTableBlock = codeBlocks[0]; // Pierwszy blok kodu to lista podatników
+                            const lines = userTableBlock.innerText.split('\n');
                             const filtered = lines.filter(line => 
-                                line.toLowerCase().includes(query) || 
-                                line.includes('Podatki Mieszkańców') || 
-                                line.includes('---') || 
+                                line.toLowerCase().includes(query.toLowerCase()) || 
+                                line.includes('----------------') || 
                                 line.includes('Nieopłacone')
                             );
-                            codeBlock.innerText = filtered.join('\n');
+                            userTableBlock.innerText = filtered.join('\n');
                         }
                     };
 
@@ -293,7 +298,7 @@
                     botBox.appendChild(btnContainer);
                 }
 
-                // Dodajemy stopkę pod przyciskami
+                // Dodajemy stopkę na samym dole pod przyciskami
                 if (resObj.footer) {
                     const footerDiv = document.createElement('div');
                     footerDiv.className = 'msg-footer';
