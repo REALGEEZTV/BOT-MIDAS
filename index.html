@@ -400,6 +400,7 @@
             <button class="sidebar-btn" onclick="sendCommand('/panszczyzna')">🌾 Pokaż Pańszczyznę</button>
             <button class="sidebar-btn" onclick="sendCommand('/dlugi')">📉 Pokaż Długi</button>
             <button class="sidebar-btn" onclick="sendCommand('/grzywny')">🚨 Pokaż Grzywny</button>
+            <button class="sidebar-btn" onclick="sendCommand('/licencje')">📜 Pokaż Licencje</button>
             <button class="sidebar-btn" onclick="sendCommand('/poradnik')">📖 Instrukcja / Pomoc</button>
         </div>
 
@@ -478,6 +479,8 @@
             { cmd: '/panszczyzna', desc: 'Wyświetla rejestr pańszczyzny' },
             { cmd: '/dlugi', desc: 'Wyświetla rejestr długów mieszkańców' },
             { cmd: '/grzywny', desc: 'Kartoteka grzywien (/grzywny Imię Nazwisko)' },
+            { cmd: '/licencje', desc: 'Wyświetla aktywne licencje i daty ważności' },
+            { cmd: '/nadajlicencje', desc: 'Nadaje licencję (/nadajlicencje Imię Nazwisko dd.mm.rrrr)' },
             { cmd: '/poradnik', desc: 'Wyświetla instrukcję obsługi i pomoc' },
             { cmd: '/dodaj', desc: 'Dodaje mieszkańca (/dodaj Imię Nazwisko kwota)' },
             { cmd: '/zawod', desc: 'Przypisuje zawód (/zawod Imię Nazwisko zawód)' },
@@ -575,7 +578,7 @@
                 return;
             }
 
-            if (['/wplata', '/zawod', '/grzywna', '/grzywny', '/dodajdlug', '/wplatadlug', '/splacdlug', '/usun', '/dodaj', '/zmienpodatek'].includes(currentCmd)) {
+            if (['/wplata', '/zawod', '/grzywna', '/grzywny', '/dodajdlug', '/wplatadlug', '/splacdlug', '/usun', '/dodaj', '/zmienpodatek', '/nadajlicencje'].includes(currentCmd)) {
                 if (cachedMieszkancy.length === 0) await fetchSidebarData();
 
                 const typedName = parts.slice(1).join(' ').toLowerCase();
@@ -697,7 +700,7 @@
                 botBox.innerHTML = resObj.content;
 
                 const lowerText = text.toLowerCase();
-                if (lowerText.includes('/podatki') || lowerText.includes('/panszczyzna') || lowerText.includes('/dlugi') || lowerText.includes('/grzywny') || lowerText.includes('/tablica') || lowerText.includes('/skarbiec')) {
+                if (lowerText.includes('/podatki') || lowerText.includes('/panszczyzna') || lowerText.includes('/dlugi') || lowerText.includes('/grzywny') || lowerText.includes('/tablica') || lowerText.includes('/skarbiec') || lowerText.includes('/licencje')) {
                     const btnContainer = document.createElement('div');
                     btnContainer.className = 'action-buttons';
 
@@ -724,7 +727,7 @@
 
                     btnContainer.appendChild(refreshBtn);
 
-                    if (!lowerText.includes('/skarbiec')) {
+                    if (!lowerText.includes('/skarbiec') || lowerText.includes('/licencje')) {
                         const searchBtn = document.createElement('button');
                         searchBtn.className = 'action-btn search-btn';
                         searchBtn.innerHTML = '🔍 Szukaj Mieszkańca';
