@@ -661,6 +661,7 @@
             
             formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
             
+            
             return { content: formatted, footer: footerHtml };
         }
 
@@ -696,7 +697,7 @@
                 botBox.innerHTML = resObj.content;
 
                 const lowerText = text.toLowerCase();
-                if (lowerText.includes('/podatki') || lowerText.includes('/panszczyzna') || lowerText.includes('/dlugi') || lowerText.includes('/grzywny') || lowerText.includes('/tablica')) {
+                if (lowerText.includes('/podatki') || lowerText.includes('/panszczyzna') || lowerText.includes('/dlugi') || lowerText.includes('/grzywny') || lowerText.includes('/tablica') || lowerText.includes('/skarbiec')) {
                     const btnContainer = document.createElement('div');
                     btnContainer.className = 'action-buttons';
 
@@ -721,33 +722,35 @@
                         btnContainer.appendChild(sortBtn);
                     }
 
-                    const searchBtn = document.createElement('button');
-                    searchBtn.className = 'action-btn search-btn';
-                    searchBtn.innerHTML = '🔍 Szukaj Mieszkańca';
-                    searchBtn.onclick = () => {
-                        const query = prompt("Wpisz imię i nazwisko mieszkańca do wyszukania:");
-                        if (!query) return;
-                        
-                        if (lowerText.includes('/grzywny')) {
-                            sendCommand('/grzywny ' + query);
-                        } else {
-                            const codeBlocks = botBox.querySelectorAll('pre code');
-                            if (codeBlocks.length > 0) {
-                                const userTableBlock = codeBlocks[0];
-                                const lines = userTableBlock.innerText.split('\n');
-                                const filtered = lines.filter(line => 
-                                    line.toLowerCase().includes(query.toLowerCase()) || 
-                                    line.includes('----------------') || 
-                                    line.includes('Nieopłacone') ||
-                                    line.includes('Łączny dług')
-                                );
-                                userTableBlock.innerText = filtered.join('\n');
+                    if (!lowerText.includes('/skarbiec')) {
+                        const searchBtn = document.createElement('button');
+                        searchBtn.className = 'action-btn search-btn';
+                        searchBtn.innerHTML = '🔍 Szukaj Mieszkańca';
+                        searchBtn.onclick = () => {
+                            const query = prompt("Wpisz imię i nazwisko mieszkańca do wyszukania:");
+                            if (!query) return;
+                            
+                            if (lowerText.includes('/grzywny')) {
+                                sendCommand('/grzywny ' + query);
+                            } else {
+                                const codeBlocks = botBox.querySelectorAll('pre code');
+                                if (codeBlocks.length > 0) {
+                                    const userTableBlock = codeBlocks[0];
+                                    const lines = userTableBlock.innerText.split('\n');
+                                    const filtered = lines.filter(line => 
+                                        line.toLowerCase().includes(query.toLowerCase()) || 
+                                        line.includes('----------------') || 
+                                        line.includes('Nieopłacone') ||
+                                        line.includes('Łączny dług')
+                                    );
+                                    userTableBlock.innerText = filtered.join('\n');
+                                }
                             }
-                        }
-                    };
-
-                    btnContainer.appendChild(refreshBtn);
-                    btnContainer.appendChild(searchBtn);
+                        };
+    
+                        btnContainer.appendChild(refreshBtn);
+                        btnContainer.appendChild(searchBtn);
+                    }
                     botBox.appendChild(btnContainer);
                 }
 
