@@ -476,6 +476,7 @@
         const COMMANDS = [
             { cmd: '/podatki', desc: 'Wyświetla listę mieszkańców i ich podatki' },
             { cmd: '/skarbiec', desc: 'Wyświetla szczegółowy bilans skarbca' },
+            { cmd: '/tablica', desc: 'Wyświetla tabelę podatków mieszkańców' },
             { cmd: '/panszczyzna', desc: 'Wyświetla rejestr pańszczyzny' },
             { cmd: '/dlugi', desc: 'Wyświetla rejestr długów mieszkańców' },
             { cmd: '/grzywny', desc: 'Kartoteka grzywien (/grzywny Imię Nazwisko)' },
@@ -669,6 +670,9 @@
             return { content: formatted, footer: footerHtml };
         }
 
+        // Opisy poradnika po stronie HTML; nie wymagają zmian backendu.
+        const HELP_TEXT = "📖 **INSTRUKCJA OBSŁUGI SKARBCA (WEB)**\n\n📊 **WIDOKI:**\n• `/podatki` — Wyświetla mieszkańców, ustalone podatki i zaległości.\n• `/tablica` — Wyświetla tabelę podatków mieszkańców.\n• `/skarbiec` — Pokazuje przychody, wydatki i aktualny stan skarbca.\n• `/panszczyzna` — Wyświetla rejestr pańszczyzny mieszkańców.\n• `/panszczyzna zawod` — Sortuje rejestr pańszczyzny według zawodów.\n• `/dlugi` — Pokazuje długi mieszkańców i dni zwłoki.\n• `/grzywny` — Wyświetla informacje o kartotece grzywien.\n• `/grzywny [Imię Nazwisko]` — Pokazuje historię grzywien wybranej osoby.\n• `/licencje` — Wyświetla aktywne licencje i daty ich ważności.\n\n⚙️ **ZARZĄDZANIE:**\n• `/dodaj [Imię Nazwisko] [kwota]` — Dodaje mieszkańca i ustala podatek.\n• `/zawod [Imię Nazwisko] [zawód]` — Przypisuje mieszkańcowi zawód.\n• `/wplata [Imię Nazwisko] [kwota]` — Rejestruje wpłatę podatku.\n• `/grzywna [Imię Nazwisko] [kwota] [powód]` — Nakłada grzywnę z uzasadnieniem.\n• `/dodajdlug [Imię Nazwisko] [kwota]` — Zwiększa dług mieszkańca.\n• `/wplatadlug [Imię Nazwisko] [kwota]` — Rejestruje częściową spłatę długu.\n• `/nadajlicencje [Imię Nazwisko] [dd.mm.rrrr]` — Nadaje lub odnawia licencję do podanej daty.\n• `/splacdlug [Imię Nazwisko]` — Spłaca cały pozostały dług.\n• `/zmienpodatek [Imię Nazwisko] [kwota]` — Zmienia podatek jednej osoby.\n• `/zmienpodatekwszystkim [kwota]` — Ustawia nowy podatek wszystkim mieszkańcom.\n• `/usun [Imię Nazwisko]` — Usuwa mieszkańca z rejestru.\n• `/cofnij` — Cofa ostatnią zapisaną operację zmieniającą dane.\n\n💰 **FINANSE I HISTORIA:**\n• `/transakcje` — Wyświetla historię ostatnich operacji skarbca.";
+
         async function sendCommand(commandText) {
             const text = commandText.trim();
             if (!text) return;
@@ -697,7 +701,10 @@
                 const data = await response.json();
                 const botBox = document.getElementById(loadingId);
                 
-                const resObj = formatBotResponse(data.response || "Brak odpowiedzi.");
+                const answer = text.trim().toLowerCase() === "/poradnik"
+                    ? HELP_TEXT
+                    : (data.response || "Brak odpowiedzi.");
+                const resObj = formatBotResponse(answer);
                 botBox.innerHTML = resObj.content;
 
                 const lowerText = text.toLowerCase();
