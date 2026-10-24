@@ -447,7 +447,7 @@
             const haslo = loginPassword.value;
 
             try {
-                const res = await fetch('http://localhost:5000/api/login', {
+                const res = await fetch('https://skarbiec.zlowmax.pl:8443/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ rola, haslo })
@@ -499,11 +499,11 @@
 
         async function fetchSidebarData() {
             try {
-                const resM = await fetch('http://localhost:5000/api/mieszkancy');
+                const resM = await fetch('https://skarbiec.zlowmax.pl:8443/api/mieszkancy');
                 const dataM = await resM.json();
                 cachedMieszkancy = dataM.mieszkancy || [];
 
-                const resT = await fetch('http://localhost:5000/api/transakcje');
+                const resT = await fetch('https://skarbiec.zlowmax.pl:8443/api/transakcje');
                 const dataT = await resT.json();
                 const txList = document.getElementById('sidebarTransactions');
                 txList.innerHTML = '';
@@ -683,7 +683,7 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             try {
-                const response = await fetch('http://localhost:5000/api/chat', {
+                const response = await fetch('https://skarbiec.zlowmax.pl:8443/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: text, autor: loggedInRole })
