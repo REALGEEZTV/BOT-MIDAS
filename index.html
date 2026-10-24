@@ -722,6 +722,8 @@
                         btnContainer.appendChild(sortBtn);
                     }
 
+                    btnContainer.appendChild(refreshBtn);
+
                     if (!lowerText.includes('/skarbiec')) {
                         const searchBtn = document.createElement('button');
                         searchBtn.className = 'action-btn search-btn';
@@ -748,7 +750,6 @@
                             }
                         };
     
-                        btnContainer.appendChild(refreshBtn);
                         btnContainer.appendChild(searchBtn);
                     }
                     botBox.appendChild(btnContainer);
